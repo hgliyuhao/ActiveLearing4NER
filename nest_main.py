@@ -344,28 +344,3 @@ model.fit_generator(
 
 model.load_weights('best_model.weights')
 
-# model.load_weights('10x_0.748_best_model.weights')
-# text = "记者 | 杨霞\n编辑｜殷幼安\n界面新闻记者从多位知情人士处独家获悉，中通快递近日收购了海尔集团旗下的日日顺乐家智能快递柜。\n据知情人士透露，这一收购主要涉及日日顺乐家在全国铺设的约3万组智能快递柜。中通快递网点将以6000-7000元/组的价格认购当地的日日顺智能柜，并承担未来的场租、运营成本，这些快递柜可以承接中通及其他同行的快递包裹，为用户提供快速投放、自助取件服务。\n界面新闻记者分别向双方求证此事，中通快递方面表示暂不回应，海尔日日顺截至发稿前仍未回复。\n公开资料显示，日日顺乐家智能快递柜由海尔集团旗下日日顺研发，于2014年12月宣布在全国200座城市同步启动入驻，2015年在全国286座城市投放了1万多组社区智能柜和社区驿站平台，覆盖用户1800万。2016年，乐家曾计划在全国范围内进驻4万个社区，到2017年要覆盖全国8万个社区。\n但是，智能快递柜行业普遍面临成本高、盈利模式单一的问题，日日顺乐家快递柜在2019年也曾因超时收费陷入争议。而且，日日顺旗下的物流服务专注于家电等大件物流配送业务，这与快递柜之间的业务协同性并不大。\n目前，日日顺乐家业务重心转向搭建一个围绕家庭、社区、城市的综合服务平台，强化家电、净水、家居、采暖、充电桩等业务"
-# res = extract_arguments(text)
-# print(res)
-
-predict_path = r'D:\lyh\AL_NER\data\公告.json'
-
-predict_data = fa.read_json(predict_path)
-
-predict_data = list(set(predict_data))
-
-# text = predict_data[1]
-# print(text)
-
-new = {}
-
-for i in predict_data:
-    res = predict_for_tag(i)
-    new[i] = res
-
-fa.write_json('duplicate_removal_res.json',new)    
-
-
-# evaluate('dev.json')
-
