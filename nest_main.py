@@ -281,7 +281,6 @@ def predict_for_tag(text):
 
     return new
 
-@fa.clock
 def evaluate(filename):
     
     # 评估函数
@@ -324,8 +323,7 @@ class Evaluator(keras.callbacks.Callback):
         print(val_acc)
         print(self.best_val_acc)
 
-        fa.print_to_log(val_acc)
-        fa.print_to_log(self.best_val_acc)
+
    
 evaluator = Evaluator()
 
