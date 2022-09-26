@@ -13,18 +13,22 @@ from tqdm import tqdm
 import fairies as fa
 from bert4keras.backend import keras, search_layer, K
 import math
+import os
 # keras_version == 0.10.0
 
 maxlen = 256
 batch_size = 16
 categories = set()
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+
 def read_data(filename):
 
     train_data = fa.read_json(filename)
-    
+
     res = []
-    
+
     for r in train_data:
 
         text = r
@@ -34,32 +38,28 @@ def read_data(filename):
         for tag_data in train_data[r]:
             categories.add(tag_data[1])
 
-        res.append([text,train_data[r]])
-    
-    return res        
+        res.append([text, train_data[r]])
 
-a = read_data('train.json')
+    return res
+
+
+a = read_data('data/train.json')
 categories = list(sorted(categories))
 
-fa.write_json('categories.json',categories)
-
-categories.insert(0,'i')
-categories.insert(1,'o')
-print(categories)
-
-
+categories.insert(0, 'i')
+categories.insert(1, 'o')
 
 num_labels = len(categories)
-id2label,label2id = fa.label2id(categories)
+id2label, label2id = fa.label2id(categories)
 
-p = 'D:/lyh/model/chinese_roberta_wwm_ext_L-12_H-768_A-12/'
-config_path = p +'bert_config.json'
+p = '/home/pre_models/chinese-roberta-wwm-ext-tf/'
+config_path = p + 'bert_config.json'
 checkpoint_path = p + 'bert_model.ckpt'
-dict_path = p +'vocab.txt'
+dict_path = p + 'vocab.txt'
 tokenizer = Tokenizer(dict_path, do_lower_case=True)
 
-def search(pattern, sequence):
 
+def search(pattern, sequence):
     """从sequence中寻找子串pattern
     如果找到，返回第一个下标；否则返回-1。
     """
@@ -70,8 +70,8 @@ def search(pattern, sequence):
             return i
     return -1
 
-class data_generator(DataGenerator):
 
+class data_generator(DataGenerator):
     """数据生成器
 
     """
@@ -93,18 +93,18 @@ class data_generator(DataGenerator):
                 #["上海睿昂基因科技股份有限公司","职位变动_辞职_公司",[14,28]]
                 entry = predict[0]
                 entry_type = predict[1]
-                position  = predict[2]
+                position = predict[2]
 
                 entry_token_ids = tokenizer.encode(entry)[0][1:-1]
                 entry_start = search(entry_token_ids, token_ids)
 
                 if entry_start != -1:
                     entry_type_index = label2id[entry_type]
-                    labels[entry_start][entry_type_index] = 1 
+                    labels[entry_start][entry_type_index] = 1
 
-                    for i in range(1,len(entry_token_ids)):
+                    for i in range(1, len(entry_token_ids)):
                         labels[entry_start + i][1] = 1
-                                  
+
             batch_token_ids.append(token_ids)
             batch_segment_ids.append(segment_ids)
             batch_labels.append(labels)
@@ -116,11 +116,10 @@ class data_generator(DataGenerator):
                 yield [batch_token_ids, batch_segment_ids], batch_labels
                 batch_token_ids, batch_segment_ids, batch_labels = [], [], []
 
-model = build_transformer_model(
-    config_path=config_path,
-    checkpoint_path=checkpoint_path,
-    return_keras_model=False
-    )
+
+model = build_transformer_model(config_path=config_path,
+                                checkpoint_path=checkpoint_path,
+                                return_keras_model=False)
 
 output = Dense(units=num_labels,
                activation='sigmoid',
@@ -128,22 +127,22 @@ output = Dense(units=num_labels,
 model = Model(model.input, output)
 model.summary()
 
-
 train_generator = data_generator(a, batch_size)
 
+
 def extract_arguments(text):
-    
+
     # 等你真的到了这里 你才能懂这里的风景
     tokens = tokenizer.tokenize(text)
     while len(tokens) > 510:
         tokens.pop(-2)
 
     mapping = tokenizer.rematch(text, tokens)
-    
+
     token_ids = tokenizer.tokens_to_ids(tokens)
     segment_ids = [0] * len(token_ids)
     labels = model.predict([[token_ids], [segment_ids]])[0]
-    
+
     labels = labels[1:]
 
     for lable in labels:
@@ -151,17 +150,18 @@ def extract_arguments(text):
             if lable[i] >= 0.4:
                 lable[i] = 1
             else:
-                lable[i] = 0 
+                lable[i] = 0
 
-    res = find_entry(labels,mapping,text)
+    res = find_entry(labels, mapping, text)
     return res
 
-def find_entry(labels,mapping,text):
+
+def find_entry(labels, mapping, text):
 
     res = []
 
-    for k,label in enumerate(labels):
-        for i,l in enumerate(label):
+    for k, label in enumerate(labels):
+        for i, l in enumerate(label):
             if l == 1 and i != 1:
                 start_type = id2label[i]
                 start = k
@@ -171,10 +171,12 @@ def find_entry(labels,mapping,text):
                     end = j
                     j += 1
                 if end > start:
-                    if len(mapping[end+1]) > 0:
-                        entry = text[mapping[start+1][0]:mapping[end+1][-1] +1]
-                        res.append([entry,start_type])
+                    if len(mapping[end + 1]) > 0:
+                        entry = text[mapping[start +
+                                             1][0]:mapping[end + 1][-1] + 1]
+                        res.append([entry, start_type])
     return res
+
 
 def compute_LC(text):
 
@@ -185,11 +187,11 @@ def compute_LC(text):
         tokens.pop(-2)
 
     mapping = tokenizer.rematch(text, tokens)
-    
+
     token_ids = tokenizer.tokens_to_ids(tokens)
     segment_ids = [0] * len(token_ids)
     labels = model.predict([[token_ids], [segment_ids]])[0]
-    
+
     labels = labels[1:]
 
     confidence = 0
@@ -200,9 +202,9 @@ def compute_LC(text):
             if l <= 0.5:
                 l = 1 - l
             con *= l
-        confidence += con   
-    print(confidence)
+        confidence += con
     return confidence
+
 
 def compute_MNLP(text):
 
@@ -213,11 +215,11 @@ def compute_MNLP(text):
         tokens.pop(-2)
 
     mapping = tokenizer.rematch(text, tokens)
-    
+
     token_ids = tokenizer.tokens_to_ids(tokens)
     segment_ids = [0] * len(token_ids)
     labels = model.predict([[token_ids], [segment_ids]])[0]
-    
+
     labels = labels[1:]
 
     confidence = 0
@@ -228,22 +230,23 @@ def compute_MNLP(text):
             if l <= 0.5:
                 l = 1 - l
             con += math.log(l)
-        confidence += con   
-    return (confidence/len(labels))  
+        confidence += con
+    return (confidence / len(labels))
+
 
 def predict_for_tag(text):
-    
+
     # 等你真的到了这里 你才能懂这里的风景
     tokens = tokenizer.tokenize(text)
     while len(tokens) > 510:
         tokens.pop(-2)
 
     mapping = tokenizer.rematch(text, tokens)
-    
+
     token_ids = tokenizer.tokens_to_ids(tokens)
     segment_ids = [0] * len(token_ids)
     labels = model.predict([[token_ids], [segment_ids]])[0]
-    
+
     labels = labels[1:]
 
     lc_confidence = 0
@@ -257,43 +260,57 @@ def predict_for_tag(text):
                 l = 1 - l
             lc_con *= l
             mnlp_con += math.log(l)
-        lc_confidence += lc_con   
+        lc_confidence += lc_con
         MNLP_confidence += mnlp_con
 
-    MNLP_confidence = MNLP_confidence/(len(labels))
-    # entry_MNLP_confidence = 1 - (1 - MNLP_confidence)/((len(res) + 2)**0.5) * (2*0.5)
+    MNLP_confidence = MNLP_confidence / (len(labels))
+
     for lable in labels:
         for i in range(len(lable)):
             if lable[i] >= 0.4:
                 lable[i] = 1
             else:
-                lable[i] = 0 
+                lable[i] = 0
 
-    res = find_entry(labels,mapping,text)
+    res = find_entry(labels, mapping, text)
 
     new = {}
 
+    new['text'] = text
     new['res'] = res
     new['LC'] = lc_confidence
     new['MNLP_confidence'] = MNLP_confidence
-    new['entry_MNLP_confidence'] = 1 - (1 - MNLP_confidence)/((len(res) + 2)**0.5) * (2*0.5)
-
+    new['entry_MNLP_confidence'] = 1 - (1 - MNLP_confidence) / (
+        (len(res) + 2)**0.5) * (2 * 0.5)
 
     return new
 
+
+def get_score(filename):
+
+    train_data = fa.read_json(filename)
+    res = []
+
+    for text in train_data:
+        new = predict_for_tag(text)
+        res.append(new)
+
+    fa.write_json("example/softmax_confidence.json", res, isIndent=True)
+
+
 def evaluate(filename):
-    
+
     # 评估函数
     D = fa.read_json(filename)
-    X, Y, Z = 1, 1, 1 
-    
+    X, Y, Z = 1, 1, 1
+
     for i in D:
         text = i
-        T = extract_arguments(text) 
+        T = extract_arguments(text)
         dev_list = D[i]
         R = []
         for j in dev_list:
-            R.append([j[0],j[1]])
+            R.append([j[0], j[1]])
 
         same = 0
         for i in R:
@@ -305,40 +322,34 @@ def evaluate(filename):
         Z += len(T)
 
     f1, precision, recall = 2 * X / (Y + Z), X / Y, X / Z
-    print(f1)
-    print(precision)
-    print(recall)
-    return f1, precision, recall         
+
+    return f1, precision, recall
+
 
 class Evaluator(keras.callbacks.Callback):
+
     def __init__(self):
         self.best_val_acc = 0.
 
     def on_epoch_end(self, epoch, logs=None):
         model.save_weights('last_model.weights')
-        val_acc,precision, recall = evaluate('dev.json')
+        val_acc, precision, recall = evaluate('data/dev.json')
         if val_acc > self.best_val_acc:
             self.best_val_acc = val_acc
             model.save_weights('best_model.weights')
-        print(val_acc)
-        print(self.best_val_acc)
 
 
-   
 evaluator = Evaluator()
 
-model.compile(
-    loss='binary_crossentropy',
-    optimizer=Adam(1e-5),
-    metrics=['accuracy']
-)
+model.compile(loss='binary_crossentropy',
+              optimizer=Adam(1e-5),
+              metrics=['accuracy'])
 
-model.fit_generator(
-    train_generator.forfit(),
-    steps_per_epoch=len(train_generator),
-    epochs=140,
-    callbacks=[evaluator]
-)
+model.fit_generator(train_generator.forfit(),
+                    steps_per_epoch=len(train_generator),
+                    epochs=100,
+                    callbacks=[evaluator])
 
-model.load_weights('best_model.weights')
+model.load_weights('model/best_model.weights')
 
+get_score("data/test.json")
