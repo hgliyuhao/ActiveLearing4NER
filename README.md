@@ -10,7 +10,7 @@ Deep Active Learning for Named Entity Recognition
 # 博客
 https://blog.csdn.net/HGlyh/article/details/118524845?spm=1001.2014.3001.5501
 # 使用
-运行softmax_active_learning.py 通过softmax实现NER任务并进行主动学习  
+运行softmax_active_learning.py 通过softmax实现NER任务并进行主动学习(需要较多轮次的训练)  
 运行globalpointer_active_learning.py 通过globalpointer实现NER任务并进行主动学习  
 # 效果
 data/test.json中的数据未参与训练,用于测试主动学习效果    

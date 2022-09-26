@@ -145,9 +145,8 @@ class NamedEntityRecognizer(object):
 
         scores = scores.clip(-1, 1)
 
-        # LC_score越大，模型对预测的结果信息越低，样本携带的信息越多，越值得被标注
+        # LC_score越大，模型对预测的结果信息越低，样本携带的未知信息越多，越值得被标注
         LC_score = (1 - np.abs(np.prod(scores, axis=2))).sum()
-        # LC_score = (np.abs(np.prod(scores, axis=2))).sum()
 
         return entities, LC_score
 
@@ -195,8 +194,6 @@ def get_score(data):
 
         new = {}
         new['text'] = d[0]
-        # new["predict_entries"] = list(R)
-        # new["entries"] = list(T)
         new["len"] = len(d[0])
         new['f1_socre'] = f1
         new['LC_score'] = float(LC_score)
@@ -205,7 +202,7 @@ def get_score(data):
 
         res.append(new)
 
-    fa.write_json("example/globalpointer_confidence.json", res, isIndent=True)
+    fa.write_json("globalpointer_confidence.json", res, isIndent=True)
 
 
 class Evaluator(keras.callbacks.Callback):
